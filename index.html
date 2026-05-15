@@ -198,11 +198,54 @@
         else { el.textContent = '🔄 同期中...'; el.className = 'sync-status sync-ing'; }
     }
 
-    // Firebaseへ保存
+    // Firebaseへ保存（配列の中の配列をFirestore対応に変換）
+    function flattenWeekly(data) {
+        const result = {};
+        ['this', 'next'].forEach(week => {
+            result[week] = {
+                start: data[week].start,
+                menus: data[week].menus.map((day, i) => ({ [`day${i}`]: day.join('|||') }))
+            };
+        });
+        return result;
+    }
+
+    function unflattenWeekly(data) {
+        const result = {};
+        ['this', 'next'].forEach(week => {
+            result[week] = {
+                start: data[week].start,
+                menus: data[week].menus.map((dayObj, i) => {
+                    const val = dayObj[`day${i}`];
+                    return val ? val.split('|||').filter(v => v) : [];
+                })
+            };
+        });
+        return result;
+    }
+
+    function flattenHistory(data) {
+        return data.map(w => ({
+            period: w.period,
+            details: w.details.map(d => ({ day: d.day, items: d.items.join('|||') }))
+        }));
+    }
+
+    function unflattenHistory(data) {
+        return data.map(w => ({
+            period: w.period,
+            details: w.details.map(d => ({ day: d.day, items: d.items ? d.items.split('|||').filter(v => v) : [] }))
+        }));
+    }
+
     async function saveData() {
         setSyncStatus('ing');
         try {
-            await setDoc(doc(firestore, 'kondate', 'main'), { db, weeklyData, historyData });
+            await setDoc(doc(firestore, 'kondate', 'main'), {
+                db,
+                weeklyData: flattenWeekly(weeklyData),
+                historyData: flattenHistory(historyData)
+            });
             setSyncStatus('ok');
         } catch(e) {
             console.error(e);
@@ -215,11 +258,11 @@
         if(snapshot.exists()) {
             const data = snapshot.data();
             db = data.db || { dishes: [], sets: [] };
-            weeklyData = data.weeklyData || {
+            weeklyData = data.weeklyData ? unflattenWeekly(data.weeklyData) : {
                 this: { start: "", menus: Array(7).fill(null).map(() => []) },
                 next: { start: "", menus: Array(7).fill(null).map(() => []) }
             };
-            historyData = data.historyData || [];
+            historyData = data.historyData ? unflattenHistory(data.historyData) : [];
             setSyncStatus('ok');
             // 現在表示中のページを更新
             const activePage = document.querySelector('.page.active');
