@@ -462,7 +462,9 @@
     function addToTempSet(n) { tempSetItems.push(n); renderTempTags(); }
     window.addToTempSet = addToTempSet;
 
-    function renderTempTags() { document.getElementById('set-builder-tags').innerHTML = tempSetItems.map((n, i) => `<div class="dish-tag" style="width:auto; margin:2px;">${n}<span style="margin-left:8px;cursor:pointer;color:var(--accent)" onclick="tempSetItems.splice(${i},1);renderTempTags()">×</span></div>`).join(''); }
+    function removeTempItem(i) { tempSetItems.splice(i, 1); renderTempTags(); }
+    window.removeTempItem = removeTempItem;
+    function renderTempTags() { document.getElementById('set-builder-tags').innerHTML = tempSetItems.map((n, i) => `<div class="dish-tag" style="width:auto; margin:2px;">${n}<span style="margin-left:8px;cursor:pointer;color:var(--accent)" onclick="removeTempItem(${i})">×</span></div>`).join(''); }
     window.renderTempTags = renderTempTags;
 
     function saveSet() {
